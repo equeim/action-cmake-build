@@ -1,0 +1,19 @@
+{
+  "name": "action-cmake-build",
+  "version": "1",
+  "description": "",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/equeim/action-cmake-build.git"
+  },
+  "author": "Alexey Rochev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/equeim/action-cmake-build/issues"
+  },
+  "homepage": "https://github.com/equeim/action-cmake-build#readme",
+  "dependencies": {
+    "@actions/core": "^1.6.0"
+  }
+}

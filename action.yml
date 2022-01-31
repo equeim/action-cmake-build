@@ -1,0 +1,13 @@
+name: 'Build project with CMake'
+inputs:
+  cmake-arguments:
+    description: 'Additional CMake configuration arguments'
+    required: false
+    default: ''
+  install:
+    description: 'Run install step'
+    required: false
+    default: false
+runs:
+  using: 'node16'
+  main: 'index.js'
