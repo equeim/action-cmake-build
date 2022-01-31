@@ -1693,6 +1693,7 @@ var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
 const core = __nccwpck_require__(41);
+const path = __nccwpck_require__(17);
 const process = __nccwpck_require__(282);
 const spawn = (__nccwpck_require__(81).spawn);
 
@@ -1701,20 +1702,20 @@ const buildConfigs = ['Debug', 'Release'];
 const shell = process.platform === 'win32' ? 'pwsh' : 'bash';
 
 function buildDirectory(config) {
-    return `./build-${config}`
+    return `build-${config}`
 }
 
 function installDirectory(config) {
-    return `./install-${config}`
+    return `install-${config}`
 }
 
-async function execCommand(command) {
+async function execCommand(command, cwd) {
     console.info('Executing command', command);
     try {
-        const process = spawn(command, { stdio: 'inherit', shell: shell });
+        const child = spawn(command, { stdio: 'inherit', shell: shell, cwd: cwd ? cwd : process.cwd() });
         const exitCode = await new Promise((resolve, reject) => {
-            process.on('close', resolve);
-            process.on('error', reject);
+            child.on('close', resolve);
+            child.on('error', reject);
         });
         if (exitCode != 0) {
             throw new Error(`Command exited with exit code ${exitCode}`);
@@ -1751,7 +1752,7 @@ async function build(config) {
 async function test(config) {
     core.startGroup(`Test ${config}`);
     console.info('Testing', config);
-    const ret = await execCommand(`ctest --test-dir ${buildDirectory(config)}`)
+    const ret = await execCommand('ctest', path.join(process.cwd(), buildDirectory(config)))
     core.endGroup();
     return ret;
 }
