@@ -1,5 +1,6 @@
 const util = require('util');
 const spawn = require('child_process').spawn;
+const process = require('process');
 const core = require('@actions/core');
 
 const sourceDirectory = '.';
@@ -67,6 +68,8 @@ async function main() {
     console.info('Inputs: cmake-arguments is', cmakeArguments);
     const runInstallStep = (core.getInput('install', { required: false }) === 'true');
     console.info('Inputs: install is', runInstallStep);
+
+    console.info('process.env.ComSpec is', process.env.ComSpec);
 
     let ret = await configure(cmakeArguments);
     if (!ret) {

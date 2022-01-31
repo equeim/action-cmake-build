@@ -1627,6 +1627,14 @@ module.exports = require("path");
 
 /***/ }),
 
+/***/ 282:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("process");
+
+/***/ }),
+
 /***/ 404:
 /***/ ((module) => {
 
@@ -1686,6 +1694,7 @@ var __webpack_exports__ = {};
 (() => {
 const util = __nccwpck_require__(837);
 const spawn = (__nccwpck_require__(81).spawn);
+const process = __nccwpck_require__(282);
 const core = __nccwpck_require__(41);
 
 const sourceDirectory = '.';
@@ -1753,6 +1762,8 @@ async function main() {
     console.info('Inputs: cmake-arguments is', cmakeArguments);
     const runInstallStep = (core.getInput('install', { required: false }) === 'true');
     console.info('Inputs: install is', runInstallStep);
+
+    console.info('process.env.ComSpec is', process.env.ComSpec);
 
     let ret = await configure(cmakeArguments);
     if (!ret) {
