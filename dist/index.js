@@ -1751,7 +1751,7 @@ async function install(config) {
 async function main() {
     const cmakeArguments = core.getInput('cmake-arguments', { required: false });
     console.info('Inputs: cmake-arguments is', cmakeArguments);
-    const runInstallStep = core.getInput('install', { required: false });
+    const runInstallStep = (core.getInput('install', { required: false }) === 'true');
     console.info('Inputs: install is', runInstallStep);
 
     let ret = await configure(cmakeArguments);
