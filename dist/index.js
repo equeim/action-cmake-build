@@ -1627,6 +1627,14 @@ module.exports = require("path");
 
 /***/ }),
 
+/***/ 282:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("process");
+
+/***/ }),
+
 /***/ 404:
 /***/ ((module) => {
 
@@ -1684,18 +1692,19 @@ module.exports = require("util");
 var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
-const util = __nccwpck_require__(837);
-const spawn = (__nccwpck_require__(81).spawn);
 const core = __nccwpck_require__(41);
+const process = __nccwpck_require__(282);
+const spawn = (__nccwpck_require__(81).spawn);
 
 const sourceDirectory = '.';
 const buildDirectory = './build';
 const buildConfigs = ['Debug', 'Release'];
+const shell = process.platform === 'win32' ? 'pwsh' : 'bash';
 
 async function execCommand(command) {
     console.info('Executing command', command);
     try {
-        const process = spawn(command, { stdio: 'inherit', shell: true });
+        const process = spawn(command, { stdio: 'inherit', shell: shell });
         const exitCode = await new Promise((resolve, reject) => {
             process.on('close', resolve);
             process.on('error', reject);

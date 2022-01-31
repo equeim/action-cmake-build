@@ -1,15 +1,16 @@
-const util = require('util');
-const spawn = require('child_process').spawn;
 const core = require('@actions/core');
+const process = require('process');
+const spawn = require('child_process').spawn;
 
 const sourceDirectory = '.';
 const buildDirectory = './build';
 const buildConfigs = ['Debug', 'Release'];
+const shell = process.platform === 'win32' ? 'pwsh' : 'bash';
 
 async function execCommand(command) {
     console.info('Executing command', command);
     try {
-        const process = spawn(command, { stdio: 'inherit', shell: true });
+        const process = spawn(command, { stdio: 'inherit', shell: shell });
         const exitCode = await new Promise((resolve, reject) => {
             process.on('close', resolve);
             process.on('error', reject);
