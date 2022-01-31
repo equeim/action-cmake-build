@@ -3,9 +3,16 @@ const process = require('process');
 const spawn = require('child_process').spawn;
 
 const sourceDirectory = '.';
-const buildDirectory = './build';
 const buildConfigs = ['Debug', 'Release'];
 const shell = process.platform === 'win32' ? 'pwsh' : 'bash';
+
+function buildDirectory(config) {
+    return `./build-${config}`
+}
+
+function installDirectory(config) {
+    return `./install-${config}`
+}
 
 async function execCommand(command) {
     console.info('Executing command', command);
@@ -27,10 +34,10 @@ async function execCommand(command) {
     }
 }
 
-async function configure(cmakeArguments) {
+async function configure(config, cmakeArguments) {
     core.startGroup('Configure');
     console.info('Configuring CMake');
-    let command = `cmake -S ${sourceDirectory} -B ${buildDirectory}`
+    let command = `cmake -S ${sourceDirectory} -B ${buildDirectory(config)} -G Ninja -D CMAKE_BUILD_TYPE=${config}`
     if (cmakeArguments) {
         command += ' ' + cmakeArguments;
     }
@@ -42,7 +49,7 @@ async function configure(cmakeArguments) {
 async function build(config) {
     core.startGroup(`Build ${config}`);
     console.info('Building', config);
-    const ret = await execCommand(`cmake --build ${buildDirectory} --config ${config}`)
+    const ret = await execCommand(`cmake --build ${buildDirectory(config)}`)
     core.endGroup();
     return ret;
 }
@@ -50,7 +57,7 @@ async function build(config) {
 async function test(config) {
     core.startGroup(`Test ${config}`);
     console.info('Testing', config);
-    const ret = await execCommand(`ctest --test-dir ${buildDirectory} --build-config ${config}`)
+    const ret = await execCommand(`ctest --test-dir ${buildDirectory(config)}`)
     core.endGroup();
     return ret;
 }
@@ -58,7 +65,7 @@ async function test(config) {
 async function install(config) {
     core.startGroup(`Install ${config}`);
     console.info('Installing', config);
-    const ret = await execCommand(`cmake --install ${buildDirectory} --config ${config} --prefix ./install-${config}`)
+    const ret = await execCommand(`cmake --install ${buildDirectory(config)} --prefix ${installDirectory(config)}`)
     core.endGroup();
     return ret;
 }
@@ -69,11 +76,11 @@ async function main() {
     const runInstallStep = (core.getInput('install', { required: false }) === 'true');
     console.info('Inputs: install is', runInstallStep);
 
-    let ret = await configure(cmakeArguments);
-    if (!ret) {
-        return;
-    }
     for (const config of buildConfigs) {
+        let ret = await configure(config, cmakeArguments);
+        if (!ret) {
+            return;
+        }
         ret = await build(config);
         if (!ret) {
             return;
