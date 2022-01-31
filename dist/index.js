@@ -1729,8 +1729,8 @@ async function execCommand(command) {
 }
 
 async function configure(config, cmakeArguments) {
-    core.startGroup('Configure');
-    console.info('Configuring CMake');
+    core.startGroup(`Configure ${config}`);
+    console.info('Configuring', config);
     let command = `cmake -S ${sourceDirectory} -B ${buildDirectory(config)} -G Ninja -D CMAKE_BUILD_TYPE=${config}`
     if (cmakeArguments) {
         command += ' ' + cmakeArguments;
