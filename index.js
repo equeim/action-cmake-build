@@ -1,3 +1,4 @@
+const fs = require('fs/promises');
 const path = require('path');
 const process = require('process');
 const spawn = require('child_process').spawn;
@@ -72,12 +73,34 @@ async function install(config) {
     core.endGroup();
 }
 
+async function removeDirectory(path) {
+    console.info('Removing directory', path);
+    try {
+        await fs.rm(path, { force: true, recursive: true });
+    } catch (error) {
+        console.error(error);
+        throw new AbortActionError(`Removing directory '${path}' failed with error message '${error.message}'`);
+    }
+}
+
+async function cleanup(config, removeInstallDirectory) {
+    core.startGroup(`Cleanup ${config}`);
+    let promises = [removeDirectory(buildDirectory(config))];
+    if (removeInstallDirectory) {
+        promises.push(removeDirectory(installDirectory(config)));
+    }
+    await Promise.all(promises);
+    core.endGroup();
+}
+
 async function main() {
     try {
         const cmakeArguments = core.getInput('cmake-arguments', { required: false });
         console.info('Inputs: cmake-arguments is', cmakeArguments);
         const runInstallStep = (core.getInput('install', { required: false }) === 'true');
         console.info('Inputs: install is', runInstallStep);
+        const performCleanup = (core.getInput('perform-cleanup', { required: false }) === 'true');
+        console.info('Inputs: perform-cleanup is', performCleanup);
 
         for (const config of buildConfigs) {
             await configure(config, cmakeArguments);
@@ -85,6 +108,9 @@ async function main() {
             await test(config);
             if (runInstallStep) {
                 await install(config);
+            }
+            if (performCleanup) {
+                await cleanup(config, runInstallStep);
             }
         }
     } catch (error) {

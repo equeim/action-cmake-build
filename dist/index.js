@@ -1587,6 +1587,14 @@ module.exports = require("fs");
 
 /***/ }),
 
+/***/ 292:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("fs/promises");
+
+/***/ }),
+
 /***/ 685:
 /***/ ((module) => {
 
@@ -1692,6 +1700,7 @@ module.exports = require("util");
 var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
+const fs = __nccwpck_require__(292);
 const path = __nccwpck_require__(17);
 const process = __nccwpck_require__(282);
 const spawn = (__nccwpck_require__(81).spawn);
@@ -1766,12 +1775,34 @@ async function install(config) {
     core.endGroup();
 }
 
+async function removeDirectory(path) {
+    console.info('Removing directory', path);
+    try {
+        await fs.rm(path, { force: true, recursive: true });
+    } catch (error) {
+        console.error(error);
+        throw new AbortActionError(`Removing directory '${path}' failed with error message '${error.message}'`);
+    }
+}
+
+async function cleanup(config, removeInstallDirectory) {
+    core.startGroup(`Cleanup ${config}`);
+    let promises = [removeDirectory(buildDirectory(config))];
+    if (removeInstallDirectory) {
+        promises.push(removeDirectory(installDirectory(config)));
+    }
+    await Promise.all(promises);
+    core.endGroup();
+}
+
 async function main() {
     try {
         const cmakeArguments = core.getInput('cmake-arguments', { required: false });
         console.info('Inputs: cmake-arguments is', cmakeArguments);
         const runInstallStep = (core.getInput('install', { required: false }) === 'true');
         console.info('Inputs: install is', runInstallStep);
+        const performCleanup = (core.getInput('perform-cleanup', { required: false }) === 'true');
+        console.info('Inputs: perform-cleanup is', performCleanup);
 
         for (const config of buildConfigs) {
             await configure(config, cmakeArguments);
@@ -1779,6 +1810,9 @@ async function main() {
             await test(config);
             if (runInstallStep) {
                 await install(config);
+            }
+            if (performCleanup) {
+                await cleanup(config, runInstallStep);
             }
         }
     } catch (error) {

@@ -8,6 +8,10 @@ inputs:
     description: 'Run install step'
     required: false
     default: false
+  perform-cleanup:
+    description: 'Remove build and install directories on completion'
+    required: false
+    default: false
 runs:
   using: 'node16'
   main: 'dist/index.js'
