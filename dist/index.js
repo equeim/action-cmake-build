@@ -1692,14 +1692,22 @@ module.exports = require("util");
 var __webpack_exports__ = {};
 // This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
 (() => {
-const core = __nccwpck_require__(41);
 const path = __nccwpck_require__(17);
 const process = __nccwpck_require__(282);
 const spawn = (__nccwpck_require__(81).spawn);
 
+const core = __nccwpck_require__(41);
+
 const sourceDirectory = '.';
 const buildConfigs = ['Debug', 'Release'];
 const shell = process.platform === 'win32' ? 'pwsh' : 'bash';
+
+class AbortActionError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'AbortActionError';
+    }
+}
 
 function buildDirectory(config) {
     return `build-${config}`
@@ -1720,12 +1728,9 @@ async function execCommand(command, cwd) {
         if (exitCode != 0) {
             throw new Error(`Command exited with exit code ${exitCode}`);
         }
-        return true;
     } catch (error) {
-        const message = `Command '${command}' failed with error message '${error.message}'`;
-        console.error(message);
-        core.setFailed(message);
-        return false;
+        console.error(error);
+        throw new AbortActionError(`Command '${command}' failed with error message '${error.message}'`);
     }
 }
 
@@ -1736,64 +1741,61 @@ async function configure(config, cmakeArguments) {
     if (cmakeArguments) {
         command += ' ' + cmakeArguments;
     }
-    const ret = await execCommand(command);
+    await execCommand(command);
     core.endGroup();
-    return ret;
 }
 
 async function build(config) {
     core.startGroup(`Build ${config}`);
     console.info('Building', config);
-    const ret = await execCommand(`cmake --build ${buildDirectory(config)}`)
+    await execCommand(`cmake --build ${buildDirectory(config)}`)
     core.endGroup();
-    return ret;
 }
 
 async function test(config) {
     core.startGroup(`Test ${config}`);
     console.info('Testing', config);
-    const ret = await execCommand('ctest', path.join(process.cwd(), buildDirectory(config)))
+    await execCommand('ctest', path.join(process.cwd(), buildDirectory(config)))
     core.endGroup();
-    return ret;
 }
 
 async function install(config) {
     core.startGroup(`Install ${config}`);
     console.info('Installing', config);
-    const ret = await execCommand(`cmake --install ${buildDirectory(config)} --prefix ${installDirectory(config)}`)
+    await execCommand(`cmake --install ${buildDirectory(config)} --prefix ${installDirectory(config)}`)
     core.endGroup();
-    return ret;
 }
 
 async function main() {
-    const cmakeArguments = core.getInput('cmake-arguments', { required: false });
-    console.info('Inputs: cmake-arguments is', cmakeArguments);
-    const runInstallStep = (core.getInput('install', { required: false }) === 'true');
-    console.info('Inputs: install is', runInstallStep);
+    try {
+        const cmakeArguments = core.getInput('cmake-arguments', { required: false });
+        console.info('Inputs: cmake-arguments is', cmakeArguments);
+        const runInstallStep = (core.getInput('install', { required: false }) === 'true');
+        console.info('Inputs: install is', runInstallStep);
 
-    for (const config of buildConfigs) {
-        let ret = await configure(config, cmakeArguments);
-        if (!ret) {
-            return;
-        }
-        ret = await build(config);
-        if (!ret) {
-            return;
-        }
-        ret = await test(config);
-        if (!ret) {
-            return;
-        }
-        if (runInstallStep) {
-            ret = await install(config);
-            if (!ret) {
-                return;
+        for (const config of buildConfigs) {
+            await configure(config, cmakeArguments);
+            await build(config);
+            await test(config);
+            if (runInstallStep) {
+                await install(config);
             }
         }
+    } catch (error) {
+        let message = '';
+        if (error instanceof AbortActionError) {
+            console.error(error.message);
+            message = error.message;
+        } else {
+            console.error('!!! Unhandled exception:');
+            console.error(error);
+            message = `!!! Unhandled exception ${error}`;
+        }
+        core.setFailed(message);
     }
 }
 
-main()
+main();
 
 })();
 
