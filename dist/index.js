@@ -1,7 +1,7 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 484:
+/***/ 351:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -28,7 +28,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.issue = exports.issueCommand = void 0;
 const os = __importStar(__nccwpck_require__(37));
-const utils_1 = __nccwpck_require__(247);
+const utils_1 = __nccwpck_require__(278);
 /**
  * Commands
  *
@@ -100,7 +100,7 @@ function escapeProperty(s) {
 
 /***/ }),
 
-/***/ 41:
+/***/ 186:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -135,12 +135,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getIDToken = exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.notice = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
-const command_1 = __nccwpck_require__(484);
-const file_command_1 = __nccwpck_require__(859);
-const utils_1 = __nccwpck_require__(247);
+const command_1 = __nccwpck_require__(351);
+const file_command_1 = __nccwpck_require__(717);
+const utils_1 = __nccwpck_require__(278);
 const os = __importStar(__nccwpck_require__(37));
 const path = __importStar(__nccwpck_require__(17));
-const oidc_utils_1 = __nccwpck_require__(893);
+const oidc_utils_1 = __nccwpck_require__(41);
 /**
  * The code to exit an action
  */
@@ -419,7 +419,7 @@ exports.getIDToken = getIDToken;
 
 /***/ }),
 
-/***/ 859:
+/***/ 717:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -450,7 +450,7 @@ exports.issueCommand = void 0;
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const fs = __importStar(__nccwpck_require__(147));
 const os = __importStar(__nccwpck_require__(37));
-const utils_1 = __nccwpck_require__(247);
+const utils_1 = __nccwpck_require__(278);
 function issueCommand(command, message) {
     const filePath = process.env[`GITHUB_${command}`];
     if (!filePath) {
@@ -468,7 +468,7 @@ exports.issueCommand = issueCommand;
 
 /***/ }),
 
-/***/ 893:
+/***/ 41:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -484,9 +484,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.OidcClient = void 0;
-const http_client_1 = __nccwpck_require__(813);
-const auth_1 = __nccwpck_require__(182);
-const core_1 = __nccwpck_require__(41);
+const http_client_1 = __nccwpck_require__(925);
+const auth_1 = __nccwpck_require__(702);
+const core_1 = __nccwpck_require__(186);
 class OidcClient {
     static createHttpClient(allowRetry = true, maxRetry = 10) {
         const requestOptions = {
@@ -552,7 +552,7 @@ exports.OidcClient = OidcClient;
 
 /***/ }),
 
-/***/ 247:
+/***/ 278:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -599,7 +599,7 @@ exports.toCommandProperties = toCommandProperties;
 
 /***/ }),
 
-/***/ 182:
+/***/ 702:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -665,7 +665,7 @@ exports.PersonalAccessTokenCredentialHandler = PersonalAccessTokenCredentialHand
 
 /***/ }),
 
-/***/ 813:
+/***/ 925:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -673,7 +673,7 @@ exports.PersonalAccessTokenCredentialHandler = PersonalAccessTokenCredentialHand
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const http = __nccwpck_require__(685);
 const https = __nccwpck_require__(687);
-const pm = __nccwpck_require__(22);
+const pm = __nccwpck_require__(443);
 let tunnel;
 var HttpCodes;
 (function (HttpCodes) {
@@ -1092,7 +1092,7 @@ class HttpClient {
         if (useProxy) {
             // If using proxy, need tunnel
             if (!tunnel) {
-                tunnel = __nccwpck_require__(739);
+                tunnel = __nccwpck_require__(294);
             }
             const agentOptions = {
                 maxSockets: maxSockets,
@@ -1210,7 +1210,7 @@ exports.HttpClient = HttpClient;
 
 /***/ }),
 
-/***/ 22:
+/***/ 443:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -1275,15 +1275,15 @@ exports.checkBypass = checkBypass;
 
 /***/ }),
 
-/***/ 739:
+/***/ 294:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-module.exports = __nccwpck_require__(234);
+module.exports = __nccwpck_require__(219);
 
 
 /***/ }),
 
-/***/ 234:
+/***/ 219:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -1698,38 +1698,44 @@ module.exports = require("util");
 /******/ 	
 /************************************************************************/
 var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
 (() => {
+"use strict";
+var exports = __webpack_exports__;
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 const fs = __nccwpck_require__(292);
 const path = __nccwpck_require__(17);
 const process = __nccwpck_require__(282);
-const spawn = (__nccwpck_require__(81).spawn);
-
-const core = __nccwpck_require__(41);
-
+const child_process_1 = __nccwpck_require__(81);
+const core = __nccwpck_require__(186);
 const sourceDirectory = '.';
 const buildConfigs = ['Debug', 'Release'];
-const shell = process.platform === 'win32' ? 'pwsh' : 'bash';
-
+const buildDirectories = buildConfigs.reduce((dirs, config) => {
+    dirs[config] = `build-${config}`;
+    return dirs;
+}, {});
+const installDirectories = buildConfigs.reduce((dirs, config) => {
+    dirs[config] = `install-${config}`;
+    return dirs;
+}, {});
+const shell = process.platform == 'win32' ? 'pwsh' : 'bash';
 class AbortActionError extends Error {
     constructor(message) {
         super(message);
         this.name = 'AbortActionError';
     }
 }
-
-function buildDirectory(config) {
-    return `build-${config}`
+function errorAsString(error) {
+    if (error instanceof Error && error.message) {
+        return `${error.name}: ${error.message}`;
+    }
+    return String(error);
 }
-
-function installDirectory(config) {
-    return `install-${config}`
-}
-
 async function execCommand(command, cwd) {
     console.info('Executing command', command);
     try {
-        const child = spawn(command, { stdio: 'inherit', shell: shell, cwd: cwd ? cwd : process.cwd() });
+        const child = (0, child_process_1.spawn)(command, { stdio: 'inherit', shell: shell, cwd: cwd ?? process.cwd() });
         const exitCode = await new Promise((resolve, reject) => {
             child.on('close', resolve);
             child.on('error', reject);
@@ -1737,64 +1743,59 @@ async function execCommand(command, cwd) {
         if (exitCode != 0) {
             throw new Error(`Command exited with exit code ${exitCode}`);
         }
-    } catch (error) {
+    }
+    catch (error) {
         console.error(error);
-        throw new AbortActionError(`Command '${command}' failed with error message '${error.message}'`);
+        throw new AbortActionError(`Command '${command}' failed with error message '${errorAsString(error)}'`);
     }
 }
-
 async function configure(config, cmakeArguments) {
     core.startGroup(`Configure ${config}`);
     console.info('Configuring', config);
-    let command = `cmake -S ${sourceDirectory} -B ${buildDirectory(config)} -G Ninja -D CMAKE_BUILD_TYPE=${config}`
+    let command = `cmake -S ${sourceDirectory} -B ${buildDirectories[config]} -G Ninja -D CMAKE_BUILD_TYPE=${config}`;
     if (cmakeArguments) {
         command += ' ' + cmakeArguments;
     }
     await execCommand(command);
     core.endGroup();
 }
-
 async function build(config) {
     core.startGroup(`Build ${config}`);
     console.info('Building', config);
-    await execCommand(`cmake --build ${buildDirectory(config)}`)
+    await execCommand(`cmake --build ${buildDirectories[config]}`);
     core.endGroup();
 }
-
 async function test(config) {
     core.startGroup(`Test ${config}`);
     console.info('Testing', config);
-    await execCommand('ctest', path.join(process.cwd(), buildDirectory(config)))
+    await execCommand('ctest', path.join(process.cwd(), buildDirectories[config]));
     core.endGroup();
 }
-
 async function install(config) {
     core.startGroup(`Install ${config}`);
     console.info('Installing', config);
-    await execCommand(`cmake --install ${buildDirectory(config)} --prefix ${installDirectory(config)}`)
+    await execCommand(`cmake --install ${buildDirectories[config]} --prefix ${installDirectories[config]}`);
     core.endGroup();
 }
-
 async function removeDirectory(path) {
     console.info('Removing directory', path);
     try {
         await fs.rm(path, { force: true, recursive: true });
-    } catch (error) {
+    }
+    catch (error) {
         console.error(error);
-        throw new AbortActionError(`Removing directory '${path}' failed with error message '${error.message}'`);
+        throw new AbortActionError(`Removing directory '${path}' failed with error '${errorAsString(error)}'`);
     }
 }
-
 async function cleanup(config, removeInstallDirectory) {
     core.startGroup(`Cleanup ${config}`);
-    let promises = [removeDirectory(buildDirectory(config))];
+    let promises = [removeDirectory(buildDirectories[config])];
     if (removeInstallDirectory) {
-        promises.push(removeDirectory(installDirectory(config)));
+        promises.push(removeDirectory(installDirectories[config]));
     }
     await Promise.all(promises);
     core.endGroup();
 }
-
 async function main() {
     try {
         const cmakeArguments = core.getInput('cmake-arguments', { required: false });
@@ -1803,7 +1804,6 @@ async function main() {
         console.info('Inputs: install is', runInstallStep);
         const performCleanup = (core.getInput('perform-cleanup', { required: false }) === 'true');
         console.info('Inputs: perform-cleanup is', performCleanup);
-
         for (const config of buildConfigs) {
             await configure(config, cmakeArguments);
             await build(config);
@@ -1815,12 +1815,14 @@ async function main() {
                 await cleanup(config, runInstallStep);
             }
         }
-    } catch (error) {
+    }
+    catch (error) {
         let message = '';
         if (error instanceof AbortActionError) {
             console.error(error.message);
             message = error.message;
-        } else {
+        }
+        else {
             console.error('!!! Unhandled exception:');
             console.error(error);
             message = `!!! Unhandled exception ${error}`;
@@ -1828,7 +1830,6 @@ async function main() {
         core.setFailed(message);
     }
 }
-
 main();
 
 })();

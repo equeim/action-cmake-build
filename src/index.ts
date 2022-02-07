@@ -1,33 +1,46 @@
-const fs = require('fs/promises');
-const path = require('path');
-const process = require('process');
-const spawn = require('child_process').spawn;
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import * as process from 'process';
+import { spawn } from 'child_process';
 
-const core = require('@actions/core');
+import * as core from '@actions/core';
 
-const sourceDirectory = '.';
-const buildConfigs = ['Debug', 'Release'];
-const shell = process.platform === 'win32' ? 'pwsh' : 'bash';
+const sourceDirectory = '.' as const;
+const buildConfigs = ['Debug', 'Release'] as const;
+
+type BuildConfig = typeof buildConfigs[number];
+type BuildConfigDirectories = Record<BuildConfig, string>;
+
+const buildDirectories: Readonly<BuildConfigDirectories> = buildConfigs.reduce((dirs, config) => {
+    dirs[config] = `build-${config}`;
+    return dirs;
+}, {} as BuildConfigDirectories);
+
+const installDirectories: Readonly<BuildConfigDirectories> = buildConfigs.reduce((dirs, config) => {
+    dirs[config] = `install-${config}`;
+    return dirs;
+}, {} as BuildConfigDirectories);
+
+const shell = process.platform == 'win32' ? 'pwsh' : 'bash' as const;
 
 class AbortActionError extends Error {
-    constructor(message) {
+    constructor(message: string) {
         super(message);
         this.name = 'AbortActionError';
     }
 }
 
-function buildDirectory(config) {
-    return `build-${config}`
+function errorAsString(error: unknown): string {
+    if (error instanceof Error && error.message) {
+        return `${error.name}: ${error.message}`;
+    }
+    return String(error);
 }
 
-function installDirectory(config) {
-    return `install-${config}`
-}
-
-async function execCommand(command, cwd) {
+async function execCommand(command: string, cwd?: string) {
     console.info('Executing command', command);
     try {
-        const child = spawn(command, { stdio: 'inherit', shell: shell, cwd: cwd ? cwd : process.cwd() });
+        const child = spawn(command, { stdio: 'inherit', shell: shell, cwd: cwd ?? process.cwd() });
         const exitCode = await new Promise((resolve, reject) => {
             child.on('close', resolve);
             child.on('error', reject);
@@ -37,14 +50,14 @@ async function execCommand(command, cwd) {
         }
     } catch (error) {
         console.error(error);
-        throw new AbortActionError(`Command '${command}' failed with error message '${error.message}'`);
+        throw new AbortActionError(`Command '${command}' failed with error message '${errorAsString(error)}'`);
     }
 }
 
-async function configure(config, cmakeArguments) {
+async function configure(config: BuildConfig, cmakeArguments?: string) {
     core.startGroup(`Configure ${config}`);
     console.info('Configuring', config);
-    let command = `cmake -S ${sourceDirectory} -B ${buildDirectory(config)} -G Ninja -D CMAKE_BUILD_TYPE=${config}`
+    let command = `cmake -S ${sourceDirectory} -B ${buildDirectories[config]} -G Ninja -D CMAKE_BUILD_TYPE=${config}`;
     if (cmakeArguments) {
         command += ' ' + cmakeArguments;
     }
@@ -52,42 +65,42 @@ async function configure(config, cmakeArguments) {
     core.endGroup();
 }
 
-async function build(config) {
+async function build(config: BuildConfig) {
     core.startGroup(`Build ${config}`);
     console.info('Building', config);
-    await execCommand(`cmake --build ${buildDirectory(config)}`)
+    await execCommand(`cmake --build ${buildDirectories[config]}`);
     core.endGroup();
 }
 
-async function test(config) {
+async function test(config: BuildConfig) {
     core.startGroup(`Test ${config}`);
     console.info('Testing', config);
-    await execCommand('ctest', path.join(process.cwd(), buildDirectory(config)))
+    await execCommand('ctest', path.join(process.cwd(), buildDirectories[config]));
     core.endGroup();
 }
 
-async function install(config) {
+async function install(config: BuildConfig) {
     core.startGroup(`Install ${config}`);
     console.info('Installing', config);
-    await execCommand(`cmake --install ${buildDirectory(config)} --prefix ${installDirectory(config)}`)
+    await execCommand(`cmake --install ${buildDirectories[config]} --prefix ${installDirectories[config]}`);
     core.endGroup();
 }
 
-async function removeDirectory(path) {
+async function removeDirectory(path: string) {
     console.info('Removing directory', path);
     try {
         await fs.rm(path, { force: true, recursive: true });
     } catch (error) {
         console.error(error);
-        throw new AbortActionError(`Removing directory '${path}' failed with error message '${error.message}'`);
+        throw new AbortActionError(`Removing directory '${path}' failed with error '${errorAsString(error)}'`);
     }
 }
 
-async function cleanup(config, removeInstallDirectory) {
+async function cleanup(config: BuildConfig, removeInstallDirectory: boolean) {
     core.startGroup(`Cleanup ${config}`);
-    let promises = [removeDirectory(buildDirectory(config))];
+    let promises = [removeDirectory(buildDirectories[config])];
     if (removeInstallDirectory) {
-        promises.push(removeDirectory(installDirectory(config)));
+        promises.push(removeDirectory(installDirectories[config]));
     }
     await Promise.all(promises);
     core.endGroup();
