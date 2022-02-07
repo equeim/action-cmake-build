@@ -1785,6 +1785,10 @@ async function main() {
                 await install(config);
             }
         }
+        if (runInstallStep) {
+            core.setOutput('install-directory-debug', installDirectories.Debug);
+            core.setOutput('install-directory-release', installDirectories.Release);
+        }
     }
     catch (error) {
         let message = '';

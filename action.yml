@@ -14,6 +14,11 @@ inputs:
     description: 'Run install step'
     required: false
     default: false
+outputs:
+  install-directory-debug:
+    description: Debug install directory
+  install-directory-release:
+    description: Release install directory
 runs:
   using: 'node16'
   main: 'dist/index.js'
