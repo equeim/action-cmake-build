@@ -1587,14 +1587,6 @@ module.exports = require("fs");
 
 /***/ }),
 
-/***/ 292:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("fs/promises");
-
-/***/ }),
-
 /***/ 685:
 /***/ ((module) => {
 
@@ -1704,22 +1696,73 @@ var __webpack_exports__ = {};
 var exports = __webpack_exports__;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-const fs = __nccwpck_require__(292);
 const path = __nccwpck_require__(17);
 const process = __nccwpck_require__(282);
 const child_process_1 = __nccwpck_require__(81);
 const core = __nccwpck_require__(186);
+const cmakeArguments = core.getInput('cmake-arguments', { required: false });
+console.info('Inputs: cmake-arguments is', cmakeArguments);
+const outputDirectoriesSuffix = core.getInput('output-directories-suffix', { required: false });
+console.info('Inputs: output-directories-suffix is', outputDirectoriesSuffix);
+const runInstallStep = (core.getInput('install', { required: false }) === 'true');
+console.info('Inputs: install is', runInstallStep);
 const sourceDirectory = '.';
 const buildConfigs = ['Debug', 'Release'];
 const buildDirectories = buildConfigs.reduce((dirs, config) => {
-    dirs[config] = `build-${config}`;
+    dirs[config] = `build-${config}${outputDirectoriesSuffix ?? ''}`;
     return dirs;
 }, {});
 const installDirectories = buildConfigs.reduce((dirs, config) => {
-    dirs[config] = `install-${config}`;
+    dirs[config] = `install-${config}${outputDirectoriesSuffix ?? ''}`;
     return dirs;
 }, {});
-const shell = process.platform == 'win32' ? 'pwsh' : 'bash';
+async function execCommand(command, args, cwd) {
+    console.info('Executing command', command, 'with arguments', args, 'in working directory', cwd ?? process.cwd());
+    try {
+        const child = (0, child_process_1.spawn)(command, args, { stdio: 'inherit', cwd: cwd ?? process.cwd() });
+        const exitCode = await new Promise((resolve, reject) => {
+            child.on('close', resolve);
+            child.on('error', reject);
+        });
+        if (exitCode != 0) {
+            throw new Error(`Command exited with exit code ${exitCode}`);
+        }
+    }
+    catch (error) {
+        console.error(error);
+        throw new AbortActionError(`Command '${command}' failed with error '${errorAsString(error)}'`);
+    }
+}
+async function configure(config) {
+    core.startGroup(`Configure ${config}`);
+    console.info('Configuring', config);
+    const args = [
+        '-G', 'Ninja',
+        '-S', sourceDirectory,
+        '-B', buildDirectories[config],
+        '-D', `CMAKE_BUILD_TYPE=${config}`
+    ].concat(cmakeArguments.split(/\s+/).filter(Boolean));
+    await execCommand('cmake', args);
+    core.endGroup();
+}
+async function build(config) {
+    core.startGroup(`Build ${config}`);
+    console.info('Building', config);
+    await execCommand('cmake', ['--build', buildDirectories[config]]);
+    core.endGroup();
+}
+async function test(config) {
+    core.startGroup(`Test ${config}`);
+    console.info('Testing', config);
+    await execCommand('ctest', [], path.join(process.cwd(), buildDirectories[config]));
+    core.endGroup();
+}
+async function install(config) {
+    core.startGroup(`Install ${config}`);
+    console.info('Installing', config);
+    await execCommand('cmake', ['--install', buildDirectories[config], '--prefix', installDirectories[config]]);
+    core.endGroup();
+}
 class AbortActionError extends Error {
     constructor(message) {
         super(message);
@@ -1732,87 +1775,14 @@ function errorAsString(error) {
     }
     return String(error);
 }
-async function execCommand(command, cwd) {
-    console.info('Executing command', command);
-    try {
-        const child = (0, child_process_1.spawn)(command, { stdio: 'inherit', shell: shell, cwd: cwd ?? process.cwd() });
-        const exitCode = await new Promise((resolve, reject) => {
-            child.on('close', resolve);
-            child.on('error', reject);
-        });
-        if (exitCode != 0) {
-            throw new Error(`Command exited with exit code ${exitCode}`);
-        }
-    }
-    catch (error) {
-        console.error(error);
-        throw new AbortActionError(`Command '${command}' failed with error message '${errorAsString(error)}'`);
-    }
-}
-async function configure(config, cmakeArguments) {
-    core.startGroup(`Configure ${config}`);
-    console.info('Configuring', config);
-    let command = `cmake -S ${sourceDirectory} -B ${buildDirectories[config]} -G Ninja -D CMAKE_BUILD_TYPE=${config}`;
-    if (cmakeArguments) {
-        command += ' ' + cmakeArguments;
-    }
-    await execCommand(command);
-    core.endGroup();
-}
-async function build(config) {
-    core.startGroup(`Build ${config}`);
-    console.info('Building', config);
-    await execCommand(`cmake --build ${buildDirectories[config]}`);
-    core.endGroup();
-}
-async function test(config) {
-    core.startGroup(`Test ${config}`);
-    console.info('Testing', config);
-    await execCommand('ctest', path.join(process.cwd(), buildDirectories[config]));
-    core.endGroup();
-}
-async function install(config) {
-    core.startGroup(`Install ${config}`);
-    console.info('Installing', config);
-    await execCommand(`cmake --install ${buildDirectories[config]} --prefix ${installDirectories[config]}`);
-    core.endGroup();
-}
-async function removeDirectory(path) {
-    console.info('Removing directory', path);
-    try {
-        await fs.rm(path, { force: true, recursive: true });
-    }
-    catch (error) {
-        console.error(error);
-        throw new AbortActionError(`Removing directory '${path}' failed with error '${errorAsString(error)}'`);
-    }
-}
-async function cleanup(config, removeInstallDirectory) {
-    core.startGroup(`Cleanup ${config}`);
-    let promises = [removeDirectory(buildDirectories[config])];
-    if (removeInstallDirectory) {
-        promises.push(removeDirectory(installDirectories[config]));
-    }
-    await Promise.all(promises);
-    core.endGroup();
-}
 async function main() {
     try {
-        const cmakeArguments = core.getInput('cmake-arguments', { required: false });
-        console.info('Inputs: cmake-arguments is', cmakeArguments);
-        const runInstallStep = (core.getInput('install', { required: false }) === 'true');
-        console.info('Inputs: install is', runInstallStep);
-        const performCleanup = (core.getInput('perform-cleanup', { required: false }) === 'true');
-        console.info('Inputs: perform-cleanup is', performCleanup);
         for (const config of buildConfigs) {
-            await configure(config, cmakeArguments);
+            await configure(config);
             await build(config);
             await test(config);
             if (runInstallStep) {
                 await install(config);
-            }
-            if (performCleanup) {
-                await cleanup(config, runInstallStep);
             }
         }
     }

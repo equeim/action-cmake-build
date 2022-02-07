@@ -1,15 +1,17 @@
 name: 'Build project with CMake'
 inputs:
   cmake-arguments:
-    description: 'Additional CMake configuration arguments'
+    description: |
+      Additional CMake configuration arguments
+      They will be split by whitespace characters before feeding them into CMake
+    required: false
+    default: ''
+  output-directories-suffix:
+    description: 'Build/install directories suffix'
     required: false
     default: ''
   install:
     description: 'Run install step'
-    required: false
-    default: false
-  perform-cleanup:
-    description: 'Remove build and install directories on completion'
     required: false
     default: false
 runs:
