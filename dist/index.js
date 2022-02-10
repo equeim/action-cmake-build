@@ -1716,21 +1716,65 @@ const installDirectories = buildConfigs.reduce((dirs, config) => {
     dirs[config] = `install-${config}${outputDirectoriesSuffix ?? ''}`;
     return dirs;
 }, {});
+async function execProcess(process) {
+    const exitCode = await new Promise((resolve, reject) => {
+        process.on('close', resolve);
+        process.on('error', reject);
+    });
+    if (exitCode != 0) {
+        throw new Error(`Command exited with exit code ${exitCode}`);
+    }
+}
 async function execCommand(command, args, cwd) {
     console.info('Executing command', command, 'with arguments', args, 'in working directory', cwd ?? process.cwd());
     try {
         const child = (0, child_process_1.spawn)(command, args, { stdio: 'inherit', cwd: cwd ?? process.cwd() });
-        const exitCode = await new Promise((resolve, reject) => {
-            child.on('close', resolve);
-            child.on('error', reject);
-        });
-        if (exitCode != 0) {
-            throw new Error(`Command exited with exit code ${exitCode}`);
-        }
+        await execProcess(child);
     }
     catch (error) {
         console.error(error);
         throw new AbortActionError(`Command '${command}' failed with error '${errorAsString(error)}'`);
+    }
+}
+async function determineCMakeCapabilities() {
+    const child = (0, child_process_1.spawn)('cmake', ['--version']);
+    try {
+        let data = "";
+        child.stdout.on('data', (chunk) => {
+            if (chunk instanceof Buffer) {
+                data += chunk.toString();
+            }
+            else if (typeof (chunk) == 'string') {
+                data += chunk;
+            }
+            else {
+                console.error('determineCMakeCapabilities: invalid data chunk', chunk);
+            }
+        });
+        await execProcess(child);
+        const lines = data.split('\n').filter(Boolean);
+        if (lines.length == 0) {
+            throw new Error('Failed to determine CMake version');
+        }
+        const groups = lines[0]?.match(/.*(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+).*/)?.groups;
+        if (groups == null) {
+            throw new Error('Failed to determine CMake version');
+        }
+        console.info('Determined CMake version as', groups);
+        const major = parseInt(groups['major'] ?? '');
+        const minor = parseInt(groups['minor'] ?? '');
+        if (isNaN(major) || isNaN(minor)) {
+            throw new Error('Failed to determine CMake version');
+        }
+        if (major > 3 || minor >= 20)
+            return { canInvokeCMakeInstall: true, ctestHasTestDirArgument: true };
+        if (minor >= 15)
+            return { canInvokeCMakeInstall: true, ctestHasTestDirArgument: false };
+        return { canInvokeCMakeInstall: false, ctestHasTestDirArgument: false };
+    }
+    catch (error) {
+        console.error(error);
+        throw new AbortActionError(`Failed to determine CMake capabilities with error '${errorAsString(error)}'`);
     }
 }
 async function configure(config) {
@@ -1740,7 +1784,8 @@ async function configure(config) {
         '-G', 'Ninja',
         '-S', sourceDirectory,
         '-B', buildDirectories[config],
-        '-D', `CMAKE_BUILD_TYPE=${config}`
+        '-D', `CMAKE_BUILD_TYPE=${config}`,
+        '-D', `CMAKE_INSTALL_PREFIX=${installDirectories[config]}`
     ].concat(cmakeArguments.split(/\s+/).filter(Boolean));
     await execCommand('cmake', args);
     core.endGroup();
@@ -1751,16 +1796,26 @@ async function build(config) {
     await execCommand('cmake', ['--build', buildDirectories[config]]);
     core.endGroup();
 }
-async function test(config) {
+async function test(config, cmakeCapabilities) {
     core.startGroup(`Test ${config}`);
     console.info('Testing', config);
-    await execCommand('ctest', [], path.join(process.cwd(), buildDirectories[config]));
+    if (cmakeCapabilities.ctestHasTestDirArgument) {
+        await execCommand('ctest', ['--test-dir', buildDirectories[config]]);
+    }
+    else {
+        await execCommand('ctest', [], path.join(process.cwd(), buildDirectories[config]));
+    }
     core.endGroup();
 }
-async function install(config) {
+async function install(config, cmakeCapabilities) {
     core.startGroup(`Install ${config}`);
     console.info('Installing', config);
-    await execCommand('cmake', ['--install', buildDirectories[config], '--prefix', installDirectories[config]]);
+    if (cmakeCapabilities.canInvokeCMakeInstall) {
+        await execCommand('cmake', ['--install', buildDirectories[config]]);
+    }
+    else {
+        await execCommand('cmake', ['--build', buildDirectories[config], '--target', 'install']);
+    }
     core.endGroup();
 }
 class AbortActionError extends Error {
@@ -1777,12 +1832,14 @@ function errorAsString(error) {
 }
 async function main() {
     try {
+        const cmakeCapabilities = await determineCMakeCapabilities();
+        console.info('CMake capabilities are', cmakeCapabilities);
         for (const config of buildConfigs) {
             await configure(config);
             await build(config);
-            await test(config);
+            await test(config, cmakeCapabilities);
             if (runInstallStep) {
-                await install(config);
+                await install(config, cmakeCapabilities);
             }
         }
         if (runInstallStep) {
