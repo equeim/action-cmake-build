@@ -10,15 +10,15 @@ inputs:
     description: 'Build/install directories suffix'
     required: false
     default: ''
-  install:
-    description: 'Run install step'
+  package:
+    description: 'Build package target'
     required: false
-    default: false
+    default: 'false'
 outputs:
-  install-directory-debug:
-    description: Debug install directory
-  install-directory-release:
-    description: Release install directory
+  build-directory-debug:
+    description: Debug build directory
+  build-directory-release:
+    description: Release build directory
 runs:
   using: 'node16'
   main: 'dist/index.js'

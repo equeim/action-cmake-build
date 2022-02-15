@@ -4,12 +4,27 @@ import { ChildProcess, spawn } from 'child_process';
 
 import * as core from '@actions/core';
 
-const cmakeArguments = core.getInput('cmake-arguments', { required: false });
-console.info('Inputs: cmake-arguments is', cmakeArguments);
-const outputDirectoriesSuffix = core.getInput('output-directories-suffix', { required: false });
-console.info('Inputs: output-directories-suffix is', outputDirectoriesSuffix);
-const runInstallStep = (core.getInput('install', { required: false }) === 'true');
-console.info('Inputs: install is', runInstallStep);
+type Inputs = {
+    cmakeArguments: string[];
+    outputDirectoriesSuffix: string;
+    buildPackage: boolean;
+};
+
+function parseInputs(): Inputs {
+    const cmakeArgumentsInput = core.getInput('cmake-arguments', { required: false });
+    console.info('Inputs: cmake-arguments is', cmakeArgumentsInput);
+    const outputDirectoriesSuffixInput = core.getInput('output-directories-suffix', { required: false });
+    console.info('Inputs: output-directories-suffix is', outputDirectoriesSuffixInput);
+    const buildPackageInput = core.getInput('package', { required: false });
+    console.info('Inputs: package is', buildPackageInput);
+    return {
+        cmakeArguments: cmakeArgumentsInput.split(/\s+/).filter(Boolean),
+        outputDirectoriesSuffix: outputDirectoriesSuffixInput,
+        buildPackage: buildPackageInput === 'true'
+    }
+}
+
+const inputs = parseInputs();
 
 const sourceDirectory = '.' as const;
 const buildConfigs = ['Debug', 'Release'] as const;
@@ -18,12 +33,7 @@ type BuildConfig = typeof buildConfigs[number];
 type BuildConfigDirectories = Record<BuildConfig, string>;
 
 const buildDirectories: Readonly<BuildConfigDirectories> = buildConfigs.reduce((dirs, config) => {
-    dirs[config] = `build-${config}${outputDirectoriesSuffix ?? ''}`;
-    return dirs;
-}, {} as BuildConfigDirectories);
-
-const installDirectories: Readonly<BuildConfigDirectories> = buildConfigs.reduce((dirs, config) => {
-    dirs[config] = `install-${config}${outputDirectoriesSuffix ?? ''}`;
+    dirs[config] = `build-${config}${inputs.outputDirectoriesSuffix}`;
     return dirs;
 }, {} as BuildConfigDirectories);
 
@@ -49,7 +59,6 @@ async function execCommand(command: string, args: string[], cwd?: string) {
 }
 
 type CMakeCapabilities = {
-    canInvokeCMakeInstall: boolean,
     ctestHasTestDirArgument: boolean;
 };
 
@@ -81,9 +90,8 @@ async function determineCMakeCapabilities(): Promise<CMakeCapabilities> {
         if (isNaN(major) || isNaN(minor)) {
             throw new Error('Failed to determine CMake version');
         }
-        if (major > 3 || minor >= 20) return { canInvokeCMakeInstall: true, ctestHasTestDirArgument: true };
-        if (minor >= 15) return { canInvokeCMakeInstall: true, ctestHasTestDirArgument: false };
-        return { canInvokeCMakeInstall: false, ctestHasTestDirArgument: false };
+        if (major > 3 || (major == 3 && minor >= 20)) return { ctestHasTestDirArgument: true };
+        return { ctestHasTestDirArgument: false };
     } catch (error) {
         console.error(error);
         throw new AbortActionError(`Failed to determine CMake capabilities with error '${errorAsString(error)}'`);
@@ -97,9 +105,8 @@ async function configure(config: BuildConfig) {
         '-G', 'Ninja',
         '-S', sourceDirectory,
         '-B', buildDirectories[config],
-        '-D', `CMAKE_BUILD_TYPE=${config}`,
-        '-D', `CMAKE_INSTALL_PREFIX=${installDirectories[config]}`
-    ].concat(cmakeArguments.split(/\s+/).filter(Boolean));
+        '-D', `CMAKE_BUILD_TYPE=${config}`
+    ].concat(inputs.cmakeArguments);
     await execCommand('cmake', args);
     core.endGroup();
 }
@@ -122,15 +129,21 @@ async function test(config: BuildConfig, cmakeCapabilities: CMakeCapabilities) {
     core.endGroup();
 }
 
-async function install(config: BuildConfig, cmakeCapabilities: CMakeCapabilities) {
-    core.startGroup(`Install ${config}`);
-    console.info('Installing', config);
-    if (cmakeCapabilities.canInvokeCMakeInstall) {
-        await execCommand('cmake', ['--install', buildDirectories[config]]);
-    } else {
-        await execCommand('cmake', ['--build', buildDirectories[config], '--target', 'install']);
-    }
+async function buildPackage(config: BuildConfig) {
+    core.startGroup(`Package ${config}`);
+    console.info('Packaging', config);
+    await execCommand('cmake', ['--build', buildDirectories[config], '--target', 'package']);
     core.endGroup();
+}
+
+type Outputs = {
+    buildDirectoryDebug: string
+    buildDirectoryRelease: string
+}
+
+function setOutputs() {
+    core.setOutput('build-directory-debug', buildDirectories.Debug);
+    core.setOutput('build-directory-release', buildDirectories.Release);
 }
 
 class AbortActionError extends Error {
@@ -156,14 +169,11 @@ async function main() {
             await configure(config);
             await build(config);
             await test(config, cmakeCapabilities);
-            if (runInstallStep) {
-                await install(config, cmakeCapabilities);
+            if (inputs.buildPackage) {
+                await buildPackage(config);
             }
         }
-        if (runInstallStep) {
-            core.setOutput('install-directory-debug', installDirectories.Debug);
-            core.setOutput('install-directory-release', installDirectories.Release);
-        }
+        setOutputs();
     } catch (error) {
         let message = '';
         if (error instanceof AbortActionError) {
