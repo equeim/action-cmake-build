@@ -1,5 +1,6 @@
 {
   "name": "action-cmake-build",
+  "type": "module",
   "version": "1",
   "description": "",
   "main": "dist/index.js",
