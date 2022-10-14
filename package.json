@@ -15,12 +15,12 @@
   },
   "homepage": "https://github.com/equeim/action-cmake-build#readme",
   "dependencies": {
-    "@actions/core": "^1.9.1"
+    "@actions/core": "^1.10.0"
   },
   "devDependencies": {
-    "@types/node": "^18.7.13",
+    "@types/node": "^18.8.5",
     "@vercel/ncc": "^0.34.0",
-    "typescript": "^4.8.2",
+    "typescript": "^4.8.4",
     "yarn-upgrade-all": "^0.7.1"
   },
   "packageManager": "yarn@3.2.4"
