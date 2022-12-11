@@ -2895,10 +2895,10 @@ async function test(config, cmakeCapabilities) {
     core.startGroup(`Test ${config}`);
     console.info('Testing', config);
     if (cmakeCapabilities.ctestHasTestDirArgument) {
-        await execCommand('ctest', ['--test-dir', buildDirectories[config]]);
+        await execCommand('ctest', ['--output-on-failure', '--test-dir', buildDirectories[config]]);
     }
     else {
-        await execCommand('ctest', [], external_path_.join(external_process_namespaceObject.cwd(), buildDirectories[config]));
+        await execCommand('ctest', ['--output-on-failure'], external_path_.join(external_process_namespaceObject.cwd(), buildDirectories[config]));
     }
     core.endGroup();
 }
