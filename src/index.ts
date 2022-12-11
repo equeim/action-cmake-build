@@ -24,18 +24,10 @@ function parseInputs(): Inputs {
     }
 }
 
-const inputs = parseInputs();
-
-const sourceDirectory = '.' as const;
 const buildConfigs = ['Debug', 'Release'] as const;
 
 type BuildConfig = typeof buildConfigs[number];
-type BuildConfigDirectories = Record<BuildConfig, string>;
-
-const buildDirectories: Readonly<BuildConfigDirectories> = buildConfigs.reduce((dirs, config) => {
-    dirs[config] = `build-${config}${inputs.outputDirectoriesSuffix}`;
-    return dirs;
-}, {} as BuildConfigDirectories);
+type BuildDirectories = Record<BuildConfig, string>;
 
 async function execProcess(process: ChildProcess) {
     const exitCode: number = await new Promise((resolve, reject) => {
@@ -98,50 +90,45 @@ async function determineCMakeCapabilities(): Promise<CMakeCapabilities> {
     }
 }
 
-async function configure(config: BuildConfig) {
+async function configure(config: BuildConfig, buildDirectory: string, inputs: Inputs) {
     core.startGroup(`Configure ${config}`);
     console.info('Configuring', config);
     const args = [
         '-G', 'Ninja',
-        '-S', sourceDirectory,
-        '-B', buildDirectories[config],
+        '-S', '.',
+        '-B', buildDirectory,
         '-D', `CMAKE_BUILD_TYPE=${config}`
     ].concat(inputs.cmakeArguments);
     await execCommand('cmake', args);
     core.endGroup();
 }
 
-async function build(config: BuildConfig) {
+async function build(config: BuildConfig, buildDirectory: string) {
     core.startGroup(`Build ${config}`);
     console.info('Building', config);
-    await execCommand('cmake', ['--build', buildDirectories[config]]);
+    await execCommand('cmake', ['--build', buildDirectory]);
     core.endGroup();
 }
 
-async function test(config: BuildConfig, cmakeCapabilities: CMakeCapabilities) {
+async function test(config: BuildConfig, buildDirectory: string, cmakeCapabilities: CMakeCapabilities) {
     core.startGroup(`Test ${config}`);
     console.info('Testing', config);
     if (cmakeCapabilities.ctestHasTestDirArgument) {
-        await execCommand('ctest', ['--output-on-failure', '--test-dir', buildDirectories[config]]);
+        await execCommand('ctest', ['--output-on-failure', '--test-dir', buildDirectory]);
     } else {
-        await execCommand('ctest', ['--output-on-failure'], path.join(process.cwd(), buildDirectories[config]));
+        await execCommand('ctest', ['--output-on-failure'], path.join(process.cwd(), buildDirectory));
     }
     core.endGroup();
 }
 
-async function buildPackage(config: BuildConfig) {
+async function buildPackage(config: BuildConfig, buildDirectory: string) {
     core.startGroup(`Package ${config}`);
     console.info('Packaging', config);
-    await execCommand('cmake', ['--build', buildDirectories[config], '--target', 'package']);
+    await execCommand('cmake', ['--build', buildDirectory, '--target', 'package']);
     core.endGroup();
 }
 
-type Outputs = {
-    buildDirectoryDebug: string
-    buildDirectoryRelease: string
-}
-
-function setOutputs() {
+function setOutputs(buildDirectories: BuildDirectories) {
     core.setOutput('build-directory-debug', buildDirectories.Debug);
     core.setOutput('build-directory-release', buildDirectories.Release);
 }
@@ -162,18 +149,26 @@ function errorAsString(error: unknown): string {
 
 async function main() {
     try {
+        const inputs = parseInputs();
+
+        const buildDirectories: Readonly<BuildDirectories> = buildConfigs.reduce((dirs, config) => {
+            dirs[config] = `build-${config}${inputs.outputDirectoriesSuffix}`;
+            return dirs;
+        }, {} as BuildDirectories);
+
         const cmakeCapabilities = await determineCMakeCapabilities();
         console.info('CMake capabilities are', cmakeCapabilities);
 
+        setOutputs(buildDirectories);
+
         for (const config of buildConfigs) {
-            await configure(config);
-            await build(config);
-            await test(config, cmakeCapabilities);
+            await configure(config, buildDirectories[config], inputs);
+            await build(config, buildDirectories[config]);
+            await test(config, buildDirectories[config], cmakeCapabilities);
             if (inputs.buildPackage) {
-                await buildPackage(config);
+                await buildPackage(config, buildDirectories[config]);
             }
         }
-        setOutputs();
     } catch (error) {
         let message = '';
         if (error instanceof AbortActionError) {
