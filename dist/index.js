@@ -2807,13 +2807,7 @@ function parseInputs() {
         buildPackage: buildPackageInput === 'true'
     };
 }
-const inputs = parseInputs();
-const sourceDirectory = '.';
 const buildConfigs = ['Debug', 'Release'];
-const buildDirectories = buildConfigs.reduce((dirs, config) => {
-    dirs[config] = `build-${config}${inputs.outputDirectoriesSuffix}`;
-    return dirs;
-}, {});
 async function execProcess(process) {
     const exitCode = await new Promise((resolve, reject) => {
         process.on('close', resolve);
@@ -2873,42 +2867,42 @@ async function determineCMakeCapabilities() {
         throw new AbortActionError(`Failed to determine CMake capabilities with error '${errorAsString(error)}'`);
     }
 }
-async function configure(config) {
+async function configure(config, buildDirectory, inputs) {
     core.startGroup(`Configure ${config}`);
     console.info('Configuring', config);
     const args = [
         '-G', 'Ninja',
-        '-S', sourceDirectory,
-        '-B', buildDirectories[config],
+        '-S', '.',
+        '-B', buildDirectory,
         '-D', `CMAKE_BUILD_TYPE=${config}`
     ].concat(inputs.cmakeArguments);
     await execCommand('cmake', args);
     core.endGroup();
 }
-async function build(config) {
+async function build(config, buildDirectory) {
     core.startGroup(`Build ${config}`);
     console.info('Building', config);
-    await execCommand('cmake', ['--build', buildDirectories[config]]);
+    await execCommand('cmake', ['--build', buildDirectory]);
     core.endGroup();
 }
-async function test(config, cmakeCapabilities) {
+async function test(config, buildDirectory, cmakeCapabilities) {
     core.startGroup(`Test ${config}`);
     console.info('Testing', config);
     if (cmakeCapabilities.ctestHasTestDirArgument) {
-        await execCommand('ctest', ['--output-on-failure', '--test-dir', buildDirectories[config]]);
+        await execCommand('ctest', ['--output-on-failure', '--test-dir', buildDirectory]);
     }
     else {
-        await execCommand('ctest', ['--output-on-failure'], external_path_.join(external_process_namespaceObject.cwd(), buildDirectories[config]));
+        await execCommand('ctest', ['--output-on-failure'], external_path_.join(external_process_namespaceObject.cwd(), buildDirectory));
     }
     core.endGroup();
 }
-async function buildPackage(config) {
+async function buildPackage(config, buildDirectory) {
     core.startGroup(`Package ${config}`);
     console.info('Packaging', config);
-    await execCommand('cmake', ['--build', buildDirectories[config], '--target', 'package']);
+    await execCommand('cmake', ['--build', buildDirectory, '--target', 'package']);
     core.endGroup();
 }
-function setOutputs() {
+function setOutputs(buildDirectories) {
     core.setOutput('build-directory-debug', buildDirectories.Debug);
     core.setOutput('build-directory-release', buildDirectories.Release);
 }
@@ -2926,17 +2920,22 @@ function errorAsString(error) {
 }
 async function main() {
     try {
+        const inputs = parseInputs();
+        const buildDirectories = buildConfigs.reduce((dirs, config) => {
+            dirs[config] = `build-${config}${inputs.outputDirectoriesSuffix}`;
+            return dirs;
+        }, {});
         const cmakeCapabilities = await determineCMakeCapabilities();
         console.info('CMake capabilities are', cmakeCapabilities);
+        setOutputs(buildDirectories);
         for (const config of buildConfigs) {
-            await configure(config);
-            await build(config);
-            await test(config, cmakeCapabilities);
+            await configure(config, buildDirectories[config], inputs);
+            await build(config, buildDirectories[config]);
+            await test(config, buildDirectories[config], cmakeCapabilities);
             if (inputs.buildPackage) {
-                await buildPackage(config);
+                await buildPackage(config, buildDirectories[config]);
             }
         }
-        setOutputs();
     }
     catch (error) {
         let message = '';
