@@ -122,9 +122,9 @@ async function test(config: BuildConfig, cmakeCapabilities: CMakeCapabilities) {
     core.startGroup(`Test ${config}`);
     console.info('Testing', config);
     if (cmakeCapabilities.ctestHasTestDirArgument) {
-        await execCommand('ctest', ['--test-dir', buildDirectories[config]]);
+        await execCommand('ctest', ['--output-on-failure', '--test-dir', buildDirectories[config]]);
     } else {
-        await execCommand('ctest', [], path.join(process.cwd(), buildDirectories[config]));
+        await execCommand('ctest', ['--output-on-failure'], path.join(process.cwd(), buildDirectories[config]));
     }
     core.endGroup();
 }
