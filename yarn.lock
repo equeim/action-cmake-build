@@ -58,21 +58,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^18.8.5":
-  version: 18.8.5
-  resolution: "@types/node@npm:18.8.5"
-  checksum: f7d896f54743178e64c534c6da16f582505acf18904ecd0ee8541cb4bc1d429ba514e7ecfd5145221b71adbd6ae1ff72df082f667e56d056fcd1a719df948e08
+"@types/node@npm:^18.11.13":
+  version: 18.11.13
+  resolution: "@types/node@npm:18.11.13"
+  checksum: b0c1aa3bd2f5df8240e61096a49d6d4be600109b824d23408ec4ba1ec057dc0c60588e09f73b8a60455ad26d367e9c5562fad8403099f885cbc7b4cace83ec4c
   languageName: node
   linkType: hard
 
-"@vercel/ncc@npm:^0.34.0":
-  version: 0.34.0
-  resolution: "@vercel/ncc@npm:0.34.0"
+"@vercel/ncc@npm:^0.36.0":
+  version: 0.36.0
+  resolution: "@vercel/ncc@npm:0.36.0"
   dependencies:
     node-gyp: latest
   bin:
     ncc: dist/ncc/cli.js
-  checksum: 3282578e990572759454f7f8d7ef025f2ae060b261fcb28a96d165350e3665438dc8fb72caf122081d6c57277e4899dab30ea0d8759bfd90baf37286cb887597
+  checksum: c796b2e435e6b6268ba795e61ec236d784f00f7d888637a372f353aa2b1ae7abf26fead42ba8172cee680eda6b42901883644cd7f43fa9c163d01c29f8678014
   languageName: node
   linkType: hard
 
@@ -88,10 +88,9 @@ __metadata:
   resolution: "action-cmake-build@workspace:."
   dependencies:
     "@actions/core": ^1.10.0
-    "@types/node": ^18.8.5
-    "@vercel/ncc": ^0.34.0
-    typescript: ^4.8.4
-    yarn-upgrade-all: ^0.7.1
+    "@types/node": ^18.11.13
+    "@vercel/ncc": ^0.36.0
+    typescript: ^4.9.4
   languageName: unknown
   linkType: soft
 
@@ -877,23 +876,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^4.8.4":
-  version: 4.8.4
-  resolution: "typescript@npm:4.8.4"
+"typescript@npm:^4.9.4":
+  version: 4.9.4
+  resolution: "typescript@npm:4.9.4"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 3e4f061658e0c8f36c820802fa809e0fd812b85687a9a2f5430bc3d0368e37d1c9605c3ce9b39df9a05af2ece67b1d844f9f6ea8ff42819f13bcb80f85629af0
+  checksum: e782fb9e0031cb258a80000f6c13530288c6d63f1177ed43f770533fdc15740d271554cdae86701c1dd2c83b082cea808b07e97fd68b38a172a83dbf9e0d0ef9
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^4.8.4#~builtin<compat/typescript>":
-  version: 4.8.4
-  resolution: "typescript@patch:typescript@npm%3A4.8.4#~builtin<compat/typescript>::version=4.8.4&hash=701156"
+"typescript@patch:typescript@^4.9.4#~builtin<compat/typescript>":
+  version: 4.9.4
+  resolution: "typescript@patch:typescript@npm%3A4.9.4#~builtin<compat/typescript>::version=4.9.4&hash=701156"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 301459fc3eb3b1a38fe91bf96d98eb55da88a9cb17b4ef80b4d105d620f4d547ba776cc27b44cc2ef58b66eda23fe0a74142feb5e79a6fb99f54fc018a696afa
+  checksum: 37f6e2c3c5e2aa5934b85b0fddbf32eeac8b1bacf3a5b51d01946936d03f5377fe86255d4e5a4ae628fd0cd553386355ad362c57f13b4635064400f3e8e05b9d
   languageName: node
   linkType: hard
 
@@ -962,14 +961,5 @@ __metadata:
   version: 4.0.0
   resolution: "yallist@npm:4.0.0"
   checksum: 343617202af32df2a15a3be36a5a8c0c8545208f3d3dfbc6bb7c3e3b7e8c6f8e7485432e4f3b88da3031a6e20afa7c711eded32ddfb122896ac5d914e75848d5
-  languageName: node
-  linkType: hard
-
-"yarn-upgrade-all@npm:^0.7.1":
-  version: 0.7.1
-  resolution: "yarn-upgrade-all@npm:0.7.1"
-  bin:
-    yarn-upgrade-all: build/index.js
-  checksum: 87168957082306d51825ccfc84fda9d4022e3b522aa4cee7730abc8675980612a36aba0f9516b32f660dcde7e15e8961bd9de14924e29cd01e2b8e7c2bcf5176
   languageName: node
   linkType: hard
