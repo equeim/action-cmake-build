@@ -3,6 +3,55 @@ import * as process from 'process';
 import { ChildProcess, spawn } from 'child_process';
 
 import * as core from '@actions/core';
+import { inspect } from 'util';
+
+class CMakeVersion {
+    major: number;
+    minor: number;
+    patch: number;
+
+    constructor(major: number, minor: number, patch: number) {
+        this.major = major;
+        this.minor = minor;
+        this.patch = patch;
+    }
+
+    public isNewerOrEqualThan(other: CMakeVersion): boolean {
+        if (this.major != other.major) {
+            return this.major >= other.major;
+        }
+        if (this.minor != other.minor) {
+            return this.minor >= other.minor;
+        }
+        return this.patch >= other.patch;
+    }
+
+    public isOlderThan(other: CMakeVersion): boolean {
+        return !this.isNewerOrEqualThan(other);
+    }
+
+    public toString(): string {
+        return inspect(this);
+    }
+
+    public static parse(version: string): CMakeVersion {
+        const groups = version.match(/.*(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+).*/)?.groups;
+        if (groups == null) {
+            throw new Error(`Failed to parse CMake version ${version}`);
+        }
+        const major = parseInt(groups['major'] ?? '');
+        const minor = parseInt(groups['minor'] ?? '');
+        const patch = parseInt(groups['patch'] ?? '');
+        if (isNaN(major) || isNaN(minor) || isNaN(patch)) {
+            throw new Error(`Failed to parse CMake version ${version}`);
+        }
+        return new CMakeVersion(major, minor, patch);
+    }
+};
+
+
+const minimumCMakeVersion = new CMakeVersion(3, 16, 0);
+const cmakeVersionWhereCtestHasTestDirArgument = new CMakeVersion(3, 20, 0);
 
 type Inputs = {
     cmakeArguments: string[];
@@ -21,7 +70,7 @@ function parseInputs(): Inputs {
         cmakeArguments: cmakeArgumentsInput.split(/\s+/).filter(Boolean),
         outputDirectoriesSuffix: outputDirectoriesSuffixInput,
         buildPackage: buildPackageInput === 'true'
-    }
+    };
 }
 
 const buildConfigs = ['Debug', 'Release'] as const;
@@ -55,35 +104,24 @@ type CMakeCapabilities = {
 };
 
 async function determineCMakeCapabilities(): Promise<CMakeCapabilities> {
-    const child = spawn('cmake', ['--version']);
     try {
+        const child = spawn('cmake', ['--version'], { stdio: ['ignore', 'pipe', 'inherit'] });
         let data = "";
-        child.stdout.on('data', (chunk: Buffer | string | any) => {
-            if (chunk instanceof Buffer) {
-                data += chunk.toString();
-            } else if (typeof (chunk) == 'string') {
-                data += chunk;
-            } else {
-                console.error('determineCMakeCapabilities: invalid data chunk', chunk);
-            }
+        child.stdout.setEncoding('utf-8');
+        child.stdout.on('data', (chunk: string) => {
+            data += chunk;
         });
         await execProcess(child);
         const lines = data.split('\n').filter(Boolean);
         if (lines.length == 0) {
             throw new Error('Failed to determine CMake version');
         }
-        const groups = lines[0]?.match(/.*(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+).*/)?.groups;
-        if (groups == null) {
-            throw new Error('Failed to determine CMake version');
+        const version = CMakeVersion.parse(data.split('\n').filter(Boolean)[0] ?? '');
+        console.info('CMake version is', version);
+        if (version.isOlderThan(minimumCMakeVersion)) {
+            throw new Error(`CMake version is too old, minimum supported version is ${minimumCMakeVersion}`);
         }
-        console.info('Determined CMake version as', groups);
-        const major = parseInt(groups['major'] ?? '');
-        const minor = parseInt(groups['minor'] ?? '');
-        if (isNaN(major) || isNaN(minor)) {
-            throw new Error('Failed to determine CMake version');
-        }
-        if (major > 3 || (major == 3 && minor >= 20)) return { ctestHasTestDirArgument: true };
-        return { ctestHasTestDirArgument: false };
+        return { ctestHasTestDirArgument: version.isNewerOrEqualThan(cmakeVersionWhereCtestHasTestDirArgument) };
     } catch (error) {
         console.error(error);
         throw new AbortActionError(`Failed to determine CMake capabilities with error '${errorAsString(error)}'`);
