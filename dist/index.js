@@ -2804,11 +2804,52 @@ const external_process_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import
 const external_child_process_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("child_process");
 // EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(186);
+// EXTERNAL MODULE: external "util"
+var external_util_ = __nccwpck_require__(837);
 ;// CONCATENATED MODULE: ./src/index.ts
 
 
 
 
+
+class CMakeVersion {
+    constructor(major, minor, patch) {
+        this.major = major;
+        this.minor = minor;
+        this.patch = patch;
+    }
+    isNewerOrEqualThan(other) {
+        if (this.major != other.major) {
+            return this.major >= other.major;
+        }
+        if (this.minor != other.minor) {
+            return this.minor >= other.minor;
+        }
+        return this.patch >= other.patch;
+    }
+    isOlderThan(other) {
+        return !this.isNewerOrEqualThan(other);
+    }
+    toString() {
+        return (0,external_util_.inspect)(this);
+    }
+    static parse(version) {
+        const groups = version.match(/.*(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+).*/)?.groups;
+        if (groups == null) {
+            throw new Error(`Failed to parse CMake version ${version}`);
+        }
+        const major = parseInt(groups['major'] ?? '');
+        const minor = parseInt(groups['minor'] ?? '');
+        const patch = parseInt(groups['patch'] ?? '');
+        if (isNaN(major) || isNaN(minor) || isNaN(patch)) {
+            throw new Error(`Failed to parse CMake version ${version}`);
+        }
+        return new CMakeVersion(major, minor, patch);
+    }
+}
+;
+const minimumCMakeVersion = new CMakeVersion(3, 16, 0);
+const cmakeVersionWhereCtestHasTestDirArgument = new CMakeVersion(3, 20, 0);
 function parseInputs() {
     const cmakeArgumentsInput = core.getInput('cmake-arguments', { required: false });
     console.info('Inputs: cmake-arguments is', cmakeArgumentsInput);
@@ -2844,38 +2885,24 @@ async function execCommand(command, args, cwd) {
     }
 }
 async function determineCMakeCapabilities() {
-    const child = (0,external_child_process_namespaceObject.spawn)('cmake', ['--version']);
     try {
+        const child = (0,external_child_process_namespaceObject.spawn)('cmake', ['--version'], { stdio: ['ignore', 'pipe', 'inherit'] });
         let data = "";
+        child.stdout.setEncoding('utf-8');
         child.stdout.on('data', (chunk) => {
-            if (chunk instanceof Buffer) {
-                data += chunk.toString();
-            }
-            else if (typeof (chunk) == 'string') {
-                data += chunk;
-            }
-            else {
-                console.error('determineCMakeCapabilities: invalid data chunk', chunk);
-            }
+            data += chunk;
         });
         await execProcess(child);
         const lines = data.split('\n').filter(Boolean);
         if (lines.length == 0) {
             throw new Error('Failed to determine CMake version');
         }
-        const groups = lines[0]?.match(/.*(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+).*/)?.groups;
-        if (groups == null) {
-            throw new Error('Failed to determine CMake version');
+        const version = CMakeVersion.parse(data.split('\n').filter(Boolean)[0] ?? '');
+        console.info('CMake version is', version);
+        if (version.isOlderThan(minimumCMakeVersion)) {
+            throw new Error(`CMake version is too old, minimum supported version is ${minimumCMakeVersion}`);
         }
-        console.info('Determined CMake version as', groups);
-        const major = parseInt(groups['major'] ?? '');
-        const minor = parseInt(groups['minor'] ?? '');
-        if (isNaN(major) || isNaN(minor)) {
-            throw new Error('Failed to determine CMake version');
-        }
-        if (major > 3 || (major == 3 && minor >= 20))
-            return { ctestHasTestDirArgument: true };
-        return { ctestHasTestDirArgument: false };
+        return { ctestHasTestDirArgument: version.isNewerOrEqualThan(cmakeVersionWhereCtestHasTestDirArgument) };
     }
     catch (error) {
         console.error(error);
