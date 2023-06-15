@@ -125,7 +125,6 @@ async function determineCMakeCapabilities(): Promise<CMakeCapabilities> {
 
 async function configure(inputs: Inputs) {
     core.startGroup(`Configure`);
-    console.info('Configuring');
     const args = [
         '-G', 'Ninja Multi-Config',
         '-S', '.',
@@ -137,14 +136,12 @@ async function configure(inputs: Inputs) {
 
 async function build(config: BuildConfig) {
     core.startGroup(`Build ${config}`);
-    console.info('Building', config);
     await execCommand('cmake', ['--build', buildDirectory, '--config', config]);
     core.endGroup();
 }
 
 async function test(config: BuildConfig, cmakeCapabilities: CMakeCapabilities) {
     core.startGroup(`Test ${config}`);
-    console.info('Testing', config);
     if (cmakeCapabilities.ctestHasTestDirArgument) {
         await execCommand('ctest', ['--output-on-failure', '--test-dir', buildDirectory, '--build-config', config]);
     } else {
@@ -155,7 +152,6 @@ async function test(config: BuildConfig, cmakeCapabilities: CMakeCapabilities) {
 
 async function buildPackage(config: BuildConfig) {
     core.startGroup(`Package ${config}`);
-    console.info('Packaging', config);
     await execCommand('cmake', ['--build', buildDirectory, '--config', config, '--target', 'package']);
     core.endGroup();
 }
