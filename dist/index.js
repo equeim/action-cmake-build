@@ -2909,7 +2909,6 @@ async function determineCMakeCapabilities() {
 }
 async function configure(inputs) {
     core.startGroup(`Configure`);
-    console.info('Configuring');
     const args = [
         '-G', 'Ninja Multi-Config',
         '-S', '.',
@@ -2920,13 +2919,11 @@ async function configure(inputs) {
 }
 async function build(config) {
     core.startGroup(`Build ${config}`);
-    console.info('Building', config);
     await execCommand('cmake', ['--build', buildDirectory, '--config', config]);
     core.endGroup();
 }
 async function test(config, cmakeCapabilities) {
     core.startGroup(`Test ${config}`);
-    console.info('Testing', config);
     if (cmakeCapabilities.ctestHasTestDirArgument) {
         await execCommand('ctest', ['--output-on-failure', '--test-dir', buildDirectory, '--build-config', config]);
     }
@@ -2937,7 +2934,6 @@ async function test(config, cmakeCapabilities) {
 }
 async function buildPackage(config) {
     core.startGroup(`Package ${config}`);
-    console.info('Packaging', config);
     await execCommand('cmake', ['--build', buildDirectory, '--config', config, '--target', 'package']);
     core.endGroup();
 }
