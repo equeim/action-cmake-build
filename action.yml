@@ -6,19 +6,13 @@ inputs:
       They will be split by whitespace characters before feeding them into CMake
     required: false
     default: ''
-  output-directories-suffix:
-    description: 'Build/install directories suffix'
-    required: false
-    default: ''
   package:
     description: 'Build package target'
     required: false
     default: 'false'
 outputs:
-  build-directory-debug:
-    description: Debug build directory
-  build-directory-release:
-    description: Release build directory
+  build-directory:
+    description: Build directory
 runs:
   using: 'node16'
   main: 'dist/index.js'
