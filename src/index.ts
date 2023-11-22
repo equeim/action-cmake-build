@@ -55,16 +55,20 @@ const cmakeVersionWhereCtestHasTestDirArgument = new CMakeVersion(3, 20, 0);
 
 type Inputs = {
     cmakeArguments: string[];
+    runTests: boolean;
     buildPackage: boolean;
 };
 
 function parseInputs(): Inputs {
     const cmakeArgumentsInput = core.getInput('cmake-arguments', { required: false });
     console.info('Inputs: cmake-arguments is', cmakeArgumentsInput);
+    const runTestsInput = core.getInput('test', { required: false });
+    console.info('Inputs: test is', runTestsInput);
     const buildPackageInput = core.getInput('package', { required: false });
     console.info('Inputs: package is', buildPackageInput);
     return {
         cmakeArguments: cmakeArgumentsInput.split(/\s+/).filter(Boolean),
+        runTests: runTestsInput === 'true',
         buildPackage: buildPackageInput === 'true'
     };
 }
@@ -128,7 +132,8 @@ async function configure(inputs: Inputs) {
     const args = [
         '-G', 'Ninja Multi-Config',
         '-S', '.',
-        '-B', buildDirectory
+        '-B', buildDirectory,
+        '-D', `BUILD_TESTING=${inputs.runTests ? 'ON' : 'OFF'}`
     ].concat(inputs.cmakeArguments);
     await execCommand('cmake', args);
     core.endGroup();
@@ -181,7 +186,9 @@ async function main() {
         await configure(inputs);
         for (const config of buildConfigs) {
             await build(config);
-            await test(config, cmakeCapabilities);
+            if (inputs.runTests) {
+                await test(config, cmakeCapabilities);
+            }
             if (inputs.buildPackage) {
                 await buildPackage(config);
             }
