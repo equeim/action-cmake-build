@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as process from 'process';
 import { ChildProcess, spawn } from 'child_process';
+import * as os from 'os';
 
 import * as core from '@actions/core';
 import { inspect } from 'util';
@@ -77,13 +78,20 @@ const buildConfigs = ['Debug', 'Release'] as const;
 type BuildConfig = typeof buildConfigs[number];
 const buildDirectory = 'build' as const;
 
+class NonZeroExitCodeError extends Error {
+    constructor(exitCode: number) {
+        super(`Process exited with exit code ${exitCode}`);
+        this.name = 'NonZeroExitCodeError';
+    }
+}
+
 async function execProcess(process: ChildProcess) {
     const exitCode: number = await new Promise((resolve, reject) => {
         process.on('close', resolve);
         process.on('error', reject);
     });
     if (exitCode != 0) {
-        throw new Error(`Command exited with exit code ${exitCode}`);
+        throw new NonZeroExitCodeError(exitCode);
     }
 }
 
@@ -94,7 +102,7 @@ async function execCommand(command: string, args: string[], cwd?: string) {
         await execProcess(child);
     } catch (error) {
         console.error(error);
-        throw new AbortActionError(`Command '${command}' failed with error '${errorAsString(error)}'`);
+        throw new AbortActionError(`Failed to execute command '${command}'`, error);
     }
 }
 
@@ -123,7 +131,7 @@ async function determineCMakeCapabilities(): Promise<CMakeCapabilities> {
         return { ctestHasTestDirArgument: version.isNewerOrEqualThan(cmakeVersionWhereCtestHasTestDirArgument) };
     } catch (error) {
         console.error(error);
-        throw new AbortActionError(`Failed to determine CMake capabilities with error '${errorAsString(error)}'`);
+        throw new AbortActionError(`Failed to determine CMake capabilities`, error);
     }
 }
 
@@ -157,14 +165,27 @@ async function test(config: BuildConfig, cmakeCapabilities: CMakeCapabilities) {
 
 async function buildPackage(config: BuildConfig) {
     core.startGroup(`Package ${config}`);
-    await execCommand('cmake', ['--build', buildDirectory, '--config', config, '--target', 'package']);
+    const args = ['--build', buildDirectory, '--config', config, '--target', 'package'];
+    try {
+        await execCommand('cmake', args);
+    } catch (error) {
+        if (os.platform() == 'darwin' && error instanceof AbortActionError && error.cause instanceof NonZeroExitCodeError) {
+            console.error('Retrying package command');
+            await execCommand('cmake', args);
+        } else {
+            throw error;
+        }
+    }
     core.endGroup();
 }
 
 class AbortActionError extends Error {
-    constructor(message: string) {
-        super(message);
+    readonly cause: unknown;
+
+    constructor(message: string, cause: unknown) {
+        super(`${message} with error ${errorAsString(cause)}`);
         this.name = 'AbortActionError';
+        this.cause = cause;
     }
 }
 
@@ -201,7 +222,7 @@ async function main() {
         } else {
             console.error('!!! Unhandled exception:');
             console.error(error);
-            message = `!!! Unhandled exception ${error}`;
+            message = `!!! Unhandled exception ${errorAsString(error)}`;
         }
         core.setFailed(message);
     }
