@@ -156,9 +156,9 @@ async function build(config: BuildConfig) {
 async function test(config: BuildConfig, cmakeCapabilities: CMakeCapabilities) {
     core.startGroup(`Test ${config}`);
     if (cmakeCapabilities.ctestHasTestDirArgument) {
-        await execCommand('ctest', ['--output-on-failure', '--test-dir', buildDirectory, '--build-config', config]);
+        await execCommand('ctest', ['-V', '--output-on-failure', '--test-dir', buildDirectory, '--build-config', config]);
     } else {
-        await execCommand('ctest', ['--output-on-failure', '--build-config', config], path.join(process.cwd(), buildDirectory));
+        await execCommand('ctest', ['-V', '--output-on-failure', '--build-config', config], path.join(process.cwd(), buildDirectory));
     }
     core.endGroup();
 }
