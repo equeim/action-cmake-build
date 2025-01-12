@@ -27546,7 +27546,7 @@ async function configure(inputs) {
 }
 async function build(config) {
     core.startGroup(`Build ${config}`);
-    await execCommand('cmake', ['--build', buildDirectory, '--config', config]);
+    await execCommand('cmake', ['--build', buildDirectory, '--config', config, '--verbose']);
     core.endGroup();
 }
 async function test(config, cmakeCapabilities) {

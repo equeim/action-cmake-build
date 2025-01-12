@@ -149,7 +149,7 @@ async function configure(inputs: Inputs) {
 
 async function build(config: BuildConfig) {
     core.startGroup(`Build ${config}`);
-    await execCommand('cmake', ['--build', buildDirectory, '--config', config]);
+    await execCommand('cmake', ['--build', buildDirectory, '--config', config, '--verbose']);
     core.endGroup();
 }
 
