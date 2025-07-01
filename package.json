@@ -18,9 +18,9 @@
     "@actions/core": "^1.11.1"
   },
   "devDependencies": {
-    "@types/node": "^20.17.17",
+    "@types/node": "^20.19.4",
     "@vercel/ncc": "^0.38.3",
-    "typescript": "^5.7.3"
+    "typescript": "^5.8.3"
   },
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "yarn@4.9.2"
 }
