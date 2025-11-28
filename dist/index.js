@@ -27445,6 +27445,9 @@ var external_util_ = __nccwpck_require__(9023);
 
 
 class CMakeVersion {
+    major;
+    minor;
+    patch;
     constructor(major, minor, patch) {
         this.major = major;
         this.minor = minor;
@@ -27593,9 +27596,8 @@ async function buildPackage(config) {
 }
 class AbortActionError extends Error {
     constructor(message, cause) {
-        super(`${message} with error ${errorAsString(cause)}`);
+        super(`${message} with error ${errorAsString(cause)}`, { cause: cause });
         this.name = 'AbortActionError';
-        this.cause = cause;
     }
 }
 function errorAsString(error) {

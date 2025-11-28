@@ -180,12 +180,9 @@ async function buildPackage(config: BuildConfig) {
 }
 
 class AbortActionError extends Error {
-    readonly cause: unknown;
-
     constructor(message: string, cause: unknown) {
-        super(`${message} with error ${errorAsString(cause)}`);
+        super(`${message} with error ${errorAsString(cause)}`, { cause: cause });
         this.name = 'AbortActionError';
-        this.cause = cause;
     }
 }
 
