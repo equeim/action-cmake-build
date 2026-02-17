@@ -15,10 +15,10 @@
   },
   "homepage": "https://github.com/equeim/action-cmake-build#readme",
   "dependencies": {
-    "@actions/core": "^1.11.1"
+    "@actions/core": "^3.0.0"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.10.13",
     "@vercel/ncc": "^0.38.4",
     "typescript": "^5.9.3"
   },
